@@ -18,18 +18,10 @@ kabu STATION API のローカルゲートウェイ。認証を透過的に処理
 uv sync
 ```
 
-`.env` を作成:
+`.env.example` をコピーして `.env` を作成:
 
-```
-KABUS_API_PASSWORD=your_password_here
-```
-
-オプション（デフォルト値あり）:
-
-```
-KABUS_BASE_URL=http://localhost:18080/kabusapi
-GATEWAY_HOST=0.0.0.0
-GATEWAY_PORT=18088
+```bash
+cp .env.example .env
 ```
 
 ## 起動
@@ -68,3 +60,7 @@ curl -X POST http://localhost:18088/sendorder -H 'Content-Type: application/json
 curl -X PUT http://localhost:18088/register -H 'Content-Type: application/json' -d '{"Symbols":[{"Symbol":"9433","Exchange":1}]}'
 wscat -c ws://localhost:18088/ws
 ```
+
+## クライアントスクリプト
+
+`clients/` にゲートウェイに接続するデータ収集スクリプトを格納。各スクリプトの使い方は `--help` を参照。
