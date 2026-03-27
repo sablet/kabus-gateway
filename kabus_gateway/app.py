@@ -1,3 +1,4 @@
+import logging
 import os
 from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
@@ -5,6 +6,10 @@ from collections.abc import AsyncIterator
 import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI
+
+LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s: %(message)s"
+
+logging.basicConfig(format=LOG_FORMAT, level=logging.INFO)
 
 from kabus_gateway.auth import TokenManager
 from kabus_gateway.client import KabusClient
