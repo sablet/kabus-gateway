@@ -36,13 +36,16 @@ class WsBroadcaster:
             self._clients.discard(ws)
 
     async def _relay_loop(self) -> None:
-        _disconnected = False
+        _active = False
+        _backoff = 1
         while True:
             try:
                 async with websockets.connect(self._upstream_url) as upstream:
-                    logger.info("Connected to upstream WebSocket: %s", self._upstream_url)
-                    _disconnected = False
                     async for message in upstream:
+                        if not _active:
+                            logger.info("Upstream WebSocket connected: %s", self._upstream_url)
+                            _active = True
+                        _backoff = 1
                         dead: set[WebSocket] = set()
                         for client in self._clients:
                             try:
@@ -53,10 +56,11 @@ class WsBroadcaster:
             except asyncio.CancelledError:
                 raise
             except Exception:
-                if not _disconnected:
+                if _active:
                     logger.warning("Upstream WebSocket disconnected, reconnecting in background...")
-                    _disconnected = True
-                await asyncio.sleep(1)
+                    _active = False
+                await asyncio.sleep(_backoff)
+                _backoff = min(_backoff * 2, 60)
 
 
 @router.websocket("/ws")
