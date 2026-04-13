@@ -7,7 +7,7 @@ class KabusClient:
     def __init__(self, base_url: str, token_manager: TokenManager) -> None:
         self._base_url = base_url
         self._token_manager = token_manager
-        self._http = httpx.AsyncClient(base_url=base_url)
+        self._http = httpx.AsyncClient(base_url=base_url, timeout=15.0)
 
     async def request(self, method: str, path: str, **kwargs: object) -> httpx.Response:
         token = await self._token_manager.get_token()
