@@ -80,23 +80,28 @@ def format_status(record: dict) -> str:
 
 
 async def poll(client: httpx.AsyncClient, markets: list[str]) -> None:
-    """指定市場を順に取得し、1レコードにまとめてログ."""
+    """指定市場の値上がり・値下がりを取得し、1レコードにまとめてログ."""
     now = datetime.now(JST)
-    results = []
+    up_results = []
+    down_results = []
     for market in markets:
-        params = {"Type": "1", "ExchangeDivision": market}
-        record = await fetch(client, params, now)
-        results.append(record)
+        up_results.append(await fetch(client, {"Type": "1", "ExchangeDivision": market}, now))
+        down_results.append(await fetch(client, {"Type": "2", "ExchangeDivision": market}, now))
 
-    parts = [format_status(r) for r in results]
-    print(f"[{now.strftime('%H:%M:%S')}] {' '.join(parts)}")
+    up_parts = [format_status(r) for r in up_results]
+    down_parts = [format_status(r) for r in down_results]
+    print(f"[{now.strftime('%H:%M:%S')}] up={' '.join(up_parts)} down={' '.join(down_parts)}")
+
+    def to_map(results: list[dict]) -> dict:
+        return {
+            r["params"]["ExchangeDivision"]: r.get("body") if r["status"] == 200 else {"error": r.get("error", r.get("body"))}
+            for r in results
+        }
 
     merged = {
         "ts": now.isoformat(),
-        "markets": {
-            r["params"]["ExchangeDivision"]: r.get("body") if r["status"] == 200 else {"error": r.get("error", r.get("body"))}
-            for r in results
-        },
+        "up": to_map(up_results),
+        "down": to_map(down_results),
     }
     write_record(merged, log_path(now))
 

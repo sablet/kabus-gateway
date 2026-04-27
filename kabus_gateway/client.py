@@ -28,6 +28,8 @@ _ORDER_INTERVAL = 0.25  # 5件/秒 → 250ms間隔 (4件/秒)
 _RETRY_429_MAX = 3
 _RETRY_429_BASE_SEC = 1.0
 
+_RETRY_TIMEOUT_WAIT_SEC = 1.0
+
 
 def _get_error_code(resp: httpx.Response) -> int | None:
     if resp.status_code < 400:
@@ -91,7 +93,13 @@ class KabusClient:
     async def _send(self, method: str, path: str, **kwargs: object) -> httpx.Response:
         limiter = self._order_limiter if method == "POST" else self._info_limiter
         await limiter.acquire()
-        resp = await self._http.request(method, path, **kwargs)
+        try:
+            resp = await self._http.request(method, path, **kwargs)
+        except httpx.TimeoutException:
+            logger.warning("%s %s timed out, retrying in %.1fs", method, path, _RETRY_TIMEOUT_WAIT_SEC)
+            await asyncio.sleep(_RETRY_TIMEOUT_WAIT_SEC)
+            await limiter.acquire()
+            resp = await self._http.request(method, path, **kwargs)
         if resp.status_code == 429:
             resp = await self._retry_429(method, path, **kwargs)
         return resp
